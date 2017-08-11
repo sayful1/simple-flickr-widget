@@ -1,0 +1,162 @@
+.fpg-columns {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem
+}
+
+.fpg-columns:before, .fpg-columns:after {
+    display: table;
+    content: " "
+}
+
+.fpg-columns:after {
+    clear: both
+}
+
+.fpg-columns figure {
+    margin: 0;
+    padding: 0.5rem;
+    width: 100%
+}
+
+.fpg-columns img {
+    height: auto;
+    width: 100%
+}
+
+.fpg-columns a, .fpg-columns img {
+    display: block
+}
+
+.fpg-columns.m1 figure {
+    width: 100%
+}
+
+.fpg-columns.m2 figure {
+    width: 50%
+}
+
+.fpg-columns.m3 figure {
+    width: 33.3333%
+}
+
+.fpg-columns.m4 figure {
+    width: 25%
+}
+
+.fpg-columns.m5 figure {
+    width: 20%
+}
+
+.fpg-columns.m6 figure {
+    width: 16.6666%
+}
+
+@media screen and (min-width: 600px) {
+    .fpg-columns {
+        display: flex;
+        flex-wrap: wrap;
+        flex-direction: row
+    }
+
+    .fpg-columns.t1 figure {
+        width: 100%
+    }
+
+    .fpg-columns.t2 figure {
+        width: 50%
+    }
+
+    .fpg-columns.t3 figure {
+        width: 33.3333%
+    }
+
+    .fpg-columns.t4 figure {
+        width: 25%
+    }
+
+    .fpg-columns.t5 figure {
+        width: 20%
+    }
+
+    .fpg-columns.t6 figure {
+        width: 16.6666%
+    }
+}
+
+@media screen and (min-width: 1000px) {
+    .fpg-columns.d1 figure {
+        width: 100%
+    }
+
+    .fpg-columns.d2 figure {
+        width: 50%
+    }
+
+    .fpg-columns.d3 figure {
+        width: 33.3333%
+    }
+
+    .fpg-columns.d4 figure {
+        width: 25%
+    }
+
+    .fpg-columns.d5 figure {
+        width: 20%
+    }
+
+    .fpg-columns.d6 figure {
+        width: 16.6666%
+    }
+}
+
+@media screen and (min-width: 1192px) {
+    .fpg-columns.w1 figure {
+        width: 100%
+    }
+
+    .fpg-columns.w2 figure {
+        width: 50%
+    }
+
+    .fpg-columns.w3 figure {
+        width: 33.3333%
+    }
+
+    .fpg-columns.w4 figure {
+        width: 25%
+    }
+
+    .fpg-columns.w5 figure {
+        width: 20%
+    }
+
+    .fpg-columns.w6 figure {
+        width: 16.6666%
+    }
+}
+
+@media screen and (min-width: 1384px) {
+    .fpg-columns.f1 figure {
+        width: 100%
+    }
+
+    .fpg-columns.f2 figure {
+        width: 50%
+    }
+
+    .fpg-columns.f3 figure {
+        width: 33.3333%
+    }
+
+    .fpg-columns.f4 figure {
+        width: 25%
+    }
+
+    .fpg-columns.f5 figure {
+        width: 20%
+    }
+
+    .fpg-columns.f6 figure {
+        width: 16.6666%
+    }
+}

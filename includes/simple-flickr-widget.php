@@ -54,7 +54,7 @@ class Simple_Flickr_Widget extends WP_Widget {
 		$fullhd         = isset( $instance['fullhd'] ) ? absint( $instance['fullhd'] ) : 1;
 		$is_responsive  = isset( $instance['is_responsive'] ) ? esc_attr( $instance['is_responsive'] ) : 'no';
 		$g_img_size     = isset( $instance['gallery_img_size'] ) ? esc_attr( $instance['gallery_img_size'] ) : 'q';
-		$modal_img_size = isset( $instance['modal_img_size'] ) ? esc_attr( $instance['modal_img_size'] ) : 'q';
+		$modal_img_size = isset( $instance['modal_img_size'] ) ? esc_attr( $instance['modal_img_size'] ) : 'b';
 
 		ob_start();
 
@@ -64,7 +64,7 @@ class Simple_Flickr_Widget extends WP_Widget {
 		}
 
 		if ( empty( $api_key ) ) {
-			echo $this->feed_html( $flickr_id, $number, $row_number, $g_img_size );
+			echo $this->feed_html( $flickr_id, $number, $row_number, $g_img_size, $modal_img_size );
 		}
 
 		echo $after_widget;
@@ -73,9 +73,10 @@ class Simple_Flickr_Widget extends WP_Widget {
 		echo $content;
 	}
 
-	private function feed_html( $user_id, $per_page, $columns, $img_size ) {
-		$items = $this->flickr_public_feed( $user_id, $per_page );
-		$class = sprintf( 'fpg-columns m%s', $columns );
+	private function feed_html( $user_id, $per_page, $columns, $img_size, $modal_img_size ) {
+		$photos     = $this->flickr_public_feed( $user_id, $per_page );
+		$list_class = 'flickr_photos_gallery columns is-multiline is-mobile';
+		$item_class = sprintf( 'column is-%s', $columns );
 
 		if ( $img_size == '-' ) {
 			$g_imgsize = '.';
@@ -83,21 +84,45 @@ class Simple_Flickr_Widget extends WP_Widget {
 			$g_imgsize = '_' . $img_size . '.';
 		}
 
-		$html = '';
-		if ( $items ) {
-			$html .= '<div class="' . $class . '" itemscope itemtype="http://schema.org/ImageGallery">';
-			foreach ( $items as $item ) {
-				$_img_src = $item['src'];
-				$_img_src = str_replace( '_s.', $g_imgsize, $_img_src );
+		if ( $modal_img_size == '-' ) {
+			$m_imgsize = '.';
+		} else {
+			$m_imgsize = '_' . $modal_img_size . '.';
+		}
 
-				$html .= '<figure itemprop="associatedMedia" itemscope itemtype="http://schema.org/ImageObject">';
-				$html .= sprintf( '<a target="_blank" href="%1$s"><img src="%2$s" alt="%3$s"></a>'
-					, $item['permalink']
-					, $_img_src
-					, $item['alt']
+		$html = '';
+		if ( $photos ) {
+			$html .= '<div class="' . $list_class . '">';
+
+			do_action( 'simple_flickr_widget_before_loop', $photos );
+
+			foreach ( $photos as $photo ) {
+				$img_src   = $photo['src'];
+				$_img_src  = str_replace( '_s.', $g_imgsize, $img_src );
+				$m_img_src = str_replace( '_s.', $m_imgsize, $img_src );
+
+				$size   = $this->getjpegsize( $m_img_src );
+				$width  = isset( $size[0] ) ? $size[0] : 0;
+				$height = isset( $size[1] ) ? $size[1] : 0;
+
+				$content_url = esc_url( $m_img_src );
+				$thumbnail   = esc_url( $_img_src );
+				$title       = esc_attr( $photo['alt'] );
+
+				$html .= '<figure class="' . $item_class . '">';
+				$html .= sprintf( '<a target="_blank" data-size="%4$s" href="%1$s"><img src="%2$s" alt="%3$s"></a>',
+					$content_url,
+					$thumbnail,
+					$title,
+					sprintf( '%sx%s', $width, $height )
 				);
 				$html .= '</figure>';
+
+				do_action( 'simple_flickr_widget_loop', $photo, $content_url, $thumbnail, $title );
 			}
+
+			do_action( 'simple_flickr_widget_after_loop', $photos );
+
 			$html .= '</div>';
 		}
 
@@ -151,6 +176,65 @@ class Simple_Flickr_Widget extends WP_Widget {
 		return $data;
 	}
 
+	private function getjpegsize( $img_loc ) {
+		$handle = fopen( $img_loc, "rb" ) or die( "Invalid file stream." );
+		$new_block = null;
+		if ( ! feof( $handle ) ) {
+			$new_block = fread( $handle, 32 );
+			$i         = 0;
+			if ( $new_block[ $i ] == "\xFF" && $new_block[ $i + 1 ] == "\xD8" && $new_block[ $i + 2 ] == "\xFF" && $new_block[ $i + 3 ] == "\xE0" ) {
+				$i += 4;
+				if ( $new_block[ $i + 2 ] == "\x4A" && $new_block[ $i + 3 ] == "\x46" && $new_block[ $i + 4 ] == "\x49" && $new_block[ $i + 5 ] == "\x46" && $new_block[ $i + 6 ] == "\x00" ) {
+					// Read block size and skip ahead to begin cycling through blocks in search of SOF marker
+					$block_size = unpack( "H*", $new_block[ $i ] . $new_block[ $i + 1 ] );
+					$block_size = hexdec( $block_size[1] );
+					while ( ! feof( $handle ) ) {
+						$i         += $block_size;
+						$new_block .= fread( $handle, $block_size );
+						if ( $new_block[ $i ] == "\xFF" ) {
+							// New block detected, check for SOF marker
+							$sof_marker = array(
+								"\xC0",
+								"\xC1",
+								"\xC2",
+								"\xC3",
+								"\xC5",
+								"\xC6",
+								"\xC7",
+								"\xC8",
+								"\xC9",
+								"\xCA",
+								"\xCB",
+								"\xCD",
+								"\xCE",
+								"\xCF"
+							);
+							if ( in_array( $new_block[ $i + 1 ], $sof_marker ) ) {
+								// SOF marker detected. Width and height information is contained in bytes 4-7 after this byte.
+								$size_data = $new_block[ $i + 2 ] . $new_block[ $i + 3 ] . $new_block[ $i + 4 ] . $new_block[ $i + 5 ] . $new_block[ $i + 6 ] . $new_block[ $i + 7 ] . $new_block[ $i + 8 ];
+								$unpacked  = unpack( "H*", $size_data );
+								$unpacked  = $unpacked[1];
+								$height    = hexdec( $unpacked[6] . $unpacked[7] . $unpacked[8] . $unpacked[9] );
+								$width     = hexdec( $unpacked[10] . $unpacked[11] . $unpacked[12] . $unpacked[13] );
+
+								return array( $width, $height );
+							} else {
+								// Skip block marker and read block size
+								$i          += 2;
+								$block_size = unpack( "H*", $new_block[ $i ] . $new_block[ $i + 1 ] );
+								$block_size = hexdec( $block_size[1] );
+							}
+						} else {
+							return false;
+						}
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
 	/**
 	 * Updates a particular instance of a widget.
 	 *
@@ -170,6 +254,7 @@ class Simple_Flickr_Widget extends WP_Widget {
 		$old_instance['number']           = absint( $new_instance['number'] );
 		$old_instance['row_number']       = absint( $new_instance['row_number'] );
 		$old_instance['gallery_img_size'] = sanitize_text_field( $new_instance['gallery_img_size'] );
+		$old_instance['modal_img_size']   = sanitize_text_field( $new_instance['modal_img_size'] );
 
 		$this->flush_widget_cache();
 
@@ -290,6 +375,23 @@ class Simple_Flickr_Widget extends WP_Widget {
 				<?php
 				foreach ( $image_sizes as $size => $label ) {
 					$selected = $instance['gallery_img_size'] == $size ? 'selected' : '';
+					echo sprintf( '<option value="%1$s" %3$s>%2$s</option>', $size, $label, $selected );
+				}
+				?>
+            </select>
+        </p>
+        <p>
+            <label for="<?php echo $this->get_field_id( 'modal_img_size' ); ?>">
+				<?php esc_html_e( 'Modal/Popup Image Size:', 'simple-flickr-widget' ); ?>
+            </label>
+            <select
+                    class="widefat"
+                    id="<?php echo $this->get_field_id( 'modal_img_size' ); ?>"
+                    name="<?php echo $this->get_field_name( 'modal_img_size' ); ?>"
+            >
+				<?php
+				foreach ( $image_sizes as $size => $label ) {
+					$selected = $instance['modal_img_size'] == $size ? 'selected' : '';
 					echo sprintf( '<option value="%1$s" %3$s>%2$s</option>', $size, $label, $selected );
 				}
 				?>

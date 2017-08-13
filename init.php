@@ -42,6 +42,7 @@ if ( ! class_exists( 'Flickr_Photos_Gallery' ) ):
 			// include files
 			$this->include_files();
 
+			add_action( 'admin_enqueue_scripts', array( $this, 'admin_scripts' ) );
 			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 			add_action( 'wp_footer', array( $this, 'wp_footer' ) );
 			add_action( 'wp_head', array( $this, 'inline_style' ), 10 );
@@ -79,6 +80,16 @@ if ( ! class_exists( 'Flickr_Photos_Gallery' ) ):
 			include_once FPG_INCLUDES . '/class-flickr-photos-gallery-shortcode.php';
 			include_once FPG_INCLUDES . '/class-flickr-photos-gallery-structured-data.php';
 			include_once FPG_INCLUDES . '/simple-flickr-widget.php';
+		}
+
+		public function admin_scripts( $hook ) {
+			wp_enqueue_script(
+				'simple-flickr-widget-admin',
+				FPG_ASSETS . '/js/admin.js',
+				array( 'jquery' ),
+				FPG_VERSION,
+				true
+			);
 		}
 
 		/**

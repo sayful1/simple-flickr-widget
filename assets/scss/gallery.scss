@@ -1,9 +1,21 @@
 .flickr_photos_gallery {
+    overflow: hidden;
+    &:before,
+    &:after {
+        display: table;
+        content: " ";
+    }
+
+    &:after {
+        clear: both;
+    }
     img {
         height: auto;
+        max-width: 100%;
         width: 100%;
     }
-    a, img {
+    a,
+    img {
         display: block;
     }
 }

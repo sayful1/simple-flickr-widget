@@ -39,8 +39,6 @@ class Simple_Flickr_Widget extends WP_Widget {
 			return;
 		}
 
-		extract( $args );
-
 		$title      = isset( $instance['title'] ) ? esc_attr( $instance['title'] ) : null;
 		$flickr_id  = isset( $instance['flickr_id'] ) ? esc_attr( $instance['flickr_id'] ) : null;
 		$number     = isset( $instance['number'] ) ? absint( $instance['number'] ) : 20;
@@ -53,21 +51,37 @@ class Simple_Flickr_Widget extends WP_Widget {
 		$widescreen     = isset( $instance['widescreen'] ) ? absint( $instance['widescreen'] ) : 1;
 		$fullhd         = isset( $instance['fullhd'] ) ? absint( $instance['fullhd'] ) : 1;
 		$is_responsive  = isset( $instance['is_responsive'] ) ? esc_attr( $instance['is_responsive'] ) : 'no';
+		$gutters        = isset( $instance['gutters'] ) ? esc_attr( $instance['gutters'] ) : '5px';
 		$g_img_size     = isset( $instance['gallery_img_size'] ) ? esc_attr( $instance['gallery_img_size'] ) : 'q';
 		$modal_img_size = isset( $instance['modal_img_size'] ) ? esc_attr( $instance['modal_img_size'] ) : 'b';
 
 		ob_start();
 
-		echo $before_widget;
-		if ( $title ) {
-			echo $before_title . $title . $after_title;
+		echo $args['before_widget'];
+		if ( ! empty( $title ) ) {
+			echo $args['before_title'] . $title . $args['after_title'];
 		}
 
 		if ( empty( $api_key ) ) {
+			if ( current_user_can( 'manage_options' ) ) {
+				printf(
+					'<div style="background-color: #ffdddd;border-left: 0.375rem solid #f44336; margin-bottom: 1rem;
+    margin-top: 1rem;padding: 0.01rem 1rem;" class="note-info"><p><strong>%s</strong><br>%s</p></div> ',
+					esc_html__( 'Admin Only Notice!', 'simple-flickr-widget' ),
+					esc_html__( 'From version 2.0.0, Simple Flickr Widget requires Flickr API key. Update your widget settings with api key.', 'simple-flickr-widget' )
+				);
+			}
+			if ( $gutters ) {
+				$gutter = $this->get_item_gutter( $gutters );
+				echo '<style>';
+				echo '#' . $args['widget_id'] . ' .columns{margin: -' . $gutter . '}';
+				echo '#' . $args['widget_id'] . ' .column{padding: ' . $gutter . '}';
+				echo '</style>';
+			}
 			echo $this->feed_html( $flickr_id, $number, $row_number, $g_img_size, $modal_img_size );
 		}
 
-		echo $after_widget;
+		echo $args['after_widget'];
 		$content = ob_get_clean();
 		wp_cache_set( $this->widget_id, $content );
 		echo $content;
@@ -398,6 +412,29 @@ class Simple_Flickr_Widget extends WP_Widget {
             </select>
         </p>
 		<?php
+	}
+
+	/**
+	 * Get gallery item gutter
+	 *
+	 * @param $gutters
+	 *
+	 * @return string
+	 */
+	private function get_item_gutter( $gutters ) {
+		$_gutters = floatval( $gutters ) / 2;
+		if ( false !== strpos( $gutters, 'rem' ) ) {
+			$suf = 'rem';
+		} elseif ( false !== strpos( $gutters, 'em' ) ) {
+			$suf = 'em';
+		} elseif ( false !== strpos( $gutters, 'px' ) ) {
+			$suf = 'px';
+		} else {
+			$suf = false;
+		}
+		$gutter = $_gutters . $suf;
+
+		return $gutter;
 	}
 }
 

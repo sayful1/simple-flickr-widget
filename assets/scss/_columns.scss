@@ -7,8 +7,8 @@
 
     @for $i from 1 through 12 {
         .columns.is-mobile > &.is-#{$i} {
-            // flex: none;
-            width: ($i / 12) * 100%;
+            flex: 0 0 ($i / 12) * 100%;
+            max-width: ($i / 12) * 100%;
         }
         .columns.is-mobile > &.is-offset-#{$i} {
             margin-left: ($i / 12) * 100%;
@@ -21,7 +21,7 @@
     .column {
         @for $i from 1 through 12 {
             &.is-#{$i}-mobile {
-                // flex: none;
+                flex: 0 0 ($i / 12) * 100%;
                 width: ($i / 12) * 100%;
             }
             &.is-offset-#{$i}-mobile {
@@ -37,7 +37,7 @@
         @for $i from 1 through 12 {
             &.is-#{$i},
             &.is-#{$i}-tablet {
-                // flex: none;
+                flex: 0 0 ($i / 12) * 100%;
                 width: ($i / 12) * 100%;
             }
 
@@ -54,7 +54,7 @@
     .column {
         @for $i from 1 through 12 {
             &.is-#{$i}-desktop {
-                // flex: none;
+                flex: 0 0 ($i / 12) * 100%;
                 width: ($i / 12) * 100%;
             }
 
@@ -70,7 +70,7 @@
     .column {
         @for $i from 1 through 12 {
             &.is-#{$i}-widescreen {
-                // flex: none;
+                flex: 0 0 ($i / 12) * 100%;
                 width: ($i / 12) * 100%;
             }
 
@@ -85,18 +85,6 @@
     margin-left: -0.75rem;
     margin-right: -0.75rem;
     margin-top: -0.75rem;
-
-    [class*="is-1"],
-    [class*="is-2"],
-    [class*="is-3"],
-    [class*="is-4"],
-    [class*="is-5"],
-    [class*="is-6"],
-    [class*="is-7"],
-    [class*="is-8"],
-    [class*="is-9"] {
-        flex: none;
-    }
 
     &:last-child {
         margin-bottom: -0.75rem;

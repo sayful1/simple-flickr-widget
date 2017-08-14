@@ -41,13 +41,13 @@ class Simple_Flickr_Widget extends WP_Widget {
 			$row_number = isset( $instance['row_number'] ) ? absint( $instance['row_number'] ) : 3;
 
 			$api_key        = isset( $instance['api_key'] ) ? esc_attr( $instance['api_key'] ) : '';
-			$mobile         = isset( $instance['mobile'] ) ? absint( $instance['mobile'] ) : 1;
-			$tablet         = isset( $instance['tablet'] ) ? absint( $instance['tablet'] ) : 1;
-			$desktop        = isset( $instance['desktop'] ) ? absint( $instance['desktop'] ) : 1;
-			$widescreen     = isset( $instance['widescreen'] ) ? absint( $instance['widescreen'] ) : 1;
-			$fullhd         = isset( $instance['fullhd'] ) ? absint( $instance['fullhd'] ) : 1;
-			$is_responsive  = isset( $instance['is_responsive'] ) ? esc_attr( $instance['is_responsive'] ) : 'no';
 			$gutters        = isset( $instance['gutters'] ) ? esc_attr( $instance['gutters'] ) : '5px';
+			$mobile         = isset( $instance['mobile'] ) ? absint( $instance['mobile'] ) : 1;
+			$tablet         = isset( $instance['tablet'] ) ? absint( $instance['tablet'] ) : 2;
+			$desktop        = isset( $instance['desktop'] ) ? absint( $instance['desktop'] ) : 3;
+			$widescreen     = isset( $instance['widescreen'] ) ? absint( $instance['widescreen'] ) : 4;
+			$fullhd         = isset( $instance['fullhd'] ) ? absint( $instance['fullhd'] ) : 6;
+			$is_responsive  = isset( $instance['is_responsive'] ) ? esc_attr( $instance['is_responsive'] ) : 'no';
 			$g_img_size     = isset( $instance['gallery_img_size'] ) ? esc_attr( $instance['gallery_img_size'] ) : 'q';
 			$modal_img_size = isset( $instance['modal_img_size'] ) ? esc_attr( $instance['modal_img_size'] ) : 'b';
 
@@ -66,7 +66,7 @@ class Simple_Flickr_Widget extends WP_Widget {
 			ob_start();
 
 			echo $args['before_widget'];
-			if ( ! empty( $title ) ) {
+			if ( ! empty( $instance['title'] ) ) {
 				echo $args['before_title'] . $instance['title'] . $args['after_title'];
 			}
 
@@ -86,7 +86,7 @@ class Simple_Flickr_Widget extends WP_Widget {
 					echo '#' . $args['widget_id'] . ' .column{padding: ' . $gutter . '}';
 					echo '</style>';
 				}
-				echo $this->feed_html( $flickr_id, $number, $row_number, $g_img_size, $modal_img_size );
+				echo $this->feed_html( $instance );
 			}
 
 			echo $args['after_widget'];
@@ -120,17 +120,20 @@ class Simple_Flickr_Widget extends WP_Widget {
 		return $gutter;
 	}
 
-	private function feed_html( $user_id, $per_page, $columns, $img_size, $modal_img_size ) {
-		$photos     = $this->flickr_public_feed( $user_id, $per_page );
-		$list_class = 'flickr_photos_gallery columns is-multiline is-mobile';
-		$item_class = sprintf( 'column is-%s', $columns );
+	private function feed_html( $atts ) {
 
+		$photos     = $this->flickr_public_feed( $atts['flickr_id'], $atts['total_images'] );
+		$list_class = 'flickr_photos_gallery columns is-multiline is-mobile';
+		$item_class = sprintf( 'column is-%s', $atts['columns'] );
+
+		$img_size = $atts['gallery_img_size'];
 		if ( $img_size == '-' ) {
 			$g_imgsize = '.';
 		} else {
 			$g_imgsize = '_' . $img_size . '.';
 		}
 
+		$modal_img_size = $atts['modal_img_size'];
 		if ( $modal_img_size == '-' ) {
 			$m_imgsize = '.';
 		} else {
@@ -207,8 +210,8 @@ class Simple_Flickr_Widget extends WP_Widget {
 			$image_attrs = $image_group[0]['attribs'];
 			foreach ( $image_attrs as $image ) {
 
-				$_img_src    = $image['url'];
-				$_img_src    = str_replace( 'http://', 'https://', $_img_src );
+				$_img_src = $image['url'];
+				$_img_src = str_replace( 'http://', 'https://', $_img_src );
 
 				$data[ $i ]['alt']       = esc_attr( $item->get_title() );
 				$data[ $i ]['src']       = esc_url( $_img_src );
@@ -339,22 +342,10 @@ class Simple_Flickr_Widget extends WP_Widget {
 		);
 		$instance = wp_parse_args( $instance, $defaults );
 
-		$image_sizes = array(
-			's' => __( 'Small square 75x75', 'simple-flickr-widget' ),
-			'q' => __( 'Large square 150x150', 'simple-flickr-widget' ),
-			't' => __( 'Thumbnail, 100 on longest side', 'simple-flickr-widget' ),
-			'm' => __( 'Small, 240 on longest side', 'simple-flickr-widget' ),
-			'n' => __( 'Small, 320 on longest side', 'simple-flickr-widget' ),
-			'-' => __( 'Medium, 500 on longest side', 'simple-flickr-widget' ),
-			'z' => __( 'Medium 640, 640 on longest side', 'simple-flickr-widget' ),
-			'c' => __( 'Medium 800, 800 on longest side', 'simple-flickr-widget' ),
-			'b' => __( 'Large, 1024 on longest side', 'simple-flickr-widget' ),
-			'h' => __( 'Large 1600, 1600 on longest side', 'simple-flickr-widget' ),
-			'k' => __( 'Large 2048, 2048 on longest side', 'simple-flickr-widget' ),
-		);
+		$image_sizes = $this->_photo_sizes();
 
 		?>
-        <div class="simpleFlickrWidgetAdmin">
+        <div id="simpleFlickrWidgetAdmin">
             <p>
                 <label for="<?php echo $this->get_field_id( 'title' ); ?>">
 					<?php esc_html_e( 'Title:', 'simple-flickr-widget' ); ?>
@@ -437,36 +428,201 @@ class Simple_Flickr_Widget extends WP_Widget {
 					?>
                 </select>
             </p>
-            <p>
+            <p class="column_is_responsive">
                 <label for="<?php echo $this->get_field_id( 'is_responsive' ); ?>">
                     <input type="hidden" name="<?php echo $this->get_field_name( 'is_responsive' ); ?>" value="no">
                     <input
                             type="checkbox"
+                            class="is_responsive_checked"
                             id="<?php echo $this->get_field_id( 'is_responsive' ); ?>"
-                            name="<?php echo $this->get_field_name( 'is_responsive' ); ?>"
-                            value="yes">
+                            name="<?php echo $this->get_field_name( 'is_responsive' ); ?>
+                            <?php echo $instance['is_responsive'] == 'yes' ? 'checked' : ''; ?>
+                            value=" yes">
 					<?php esc_html_e( 'Use responsive gallery:', 'simple-flickr-widget' ); ?>
                 </label>
             </p>
-            <p class="column_row_number">
-                <label for="<?php echo $this->get_field_id( 'row_number' ); ?>">
-					<?php esc_html_e( 'Number of photos to show per column:', 'simple-flickr-widget' ); ?>
-                </label>
-
-                <input
-                        type="number"
-                        class="widefat"
-                        min="1"
-                        max="6"
-                        id="<?php echo $this->get_field_id( 'row_number' ); ?>"
-                        name="<?php echo $this->get_field_name( 'row_number' ); ?>"
-                        value="<?php echo $instance['row_number']; ?>">
-                <span>
-				    <?php esc_html_e( 'Minimum 1 & Maximum 6', 'simple-flickr-widget' ); ?>
-			    </span>
-            </p>
+            <div class="no_responsive_column">
+                <p>
+                    <label for="<?php echo $this->get_field_id( 'row_number' ); ?>">
+						<?php esc_html_e( 'Photos per column:', 'simple-flickr-widget' ); ?>
+                    </label>
+                    <select
+                            class="widefat"
+                            id="<?php echo $this->get_field_id( 'row_number' ); ?>"
+                            name="<?php echo $this->get_field_name( 'row_number' ); ?>"
+                    >
+						<?php
+						foreach ( $this->_columns() as $number => $title ) {
+							$selected = $instance['row_number'] == $number ? 'selected' : '';
+							echo sprintf( '<option value="%1$s" %3$s>%2$s</option>', $number, $title, $selected );
+						}
+						?>
+                    </select>
+                </p>
+            </div>
+            <div class="responsive_columns">
+                <p>
+                    <label for="<?php echo $this->get_field_id( 'mobile' ); ?>">
+						<?php esc_html_e( 'Photos per column on mobile', 'simple-flickr-widget' ); ?>
+                    </label>
+                    <select
+                            class="widefat"
+                            id="<?php echo $this->get_field_id( 'mobile' ); ?>"
+                            name="<?php echo $this->get_field_name( 'mobile' ); ?>"
+                    >
+						<?php
+						foreach ( $this->_columns() as $number => $title ) {
+							$selected = $instance['mobile'] == $number ? 'selected' : '';
+							echo sprintf( '<option value="%1$s" %3$s>%2$s</option>', $number, $title, $selected );
+						}
+						?>
+                    </select>
+                </p>
+                <p>
+                    <label for="<?php echo $this->get_field_id( 'tablet' ); ?>">
+						<?php esc_html_e( 'Photos per column on tablet', 'simple-flickr-widget' ); ?>
+                    </label>
+                    <select
+                            class="widefat"
+                            id="<?php echo $this->get_field_id( 'tablet' ); ?>"
+                            name="<?php echo $this->get_field_name( 'tablet' ); ?>"
+                    >
+						<?php
+						foreach ( $this->_columns() as $number => $title ) {
+							$selected = $instance['tablet'] == $number ? 'selected' : '';
+							echo sprintf( '<option value="%1$s" %3$s>%2$s</option>', $number, $title, $selected );
+						}
+						?>
+                    </select>
+                </p>
+                <p>
+                    <label for="<?php echo $this->get_field_id( 'desktop' ); ?>">
+						<?php esc_html_e( 'Photos per column on desktop', 'simple-flickr-widget' ); ?>
+                    </label>
+                    <select
+                            class="widefat"
+                            id="<?php echo $this->get_field_id( 'desktop' ); ?>"
+                            name="<?php echo $this->get_field_name( 'desktop' ); ?>"
+                    >
+						<?php
+						foreach ( $this->_columns() as $number => $title ) {
+							$selected = $instance['desktop'] == $number ? 'selected' : '';
+							echo sprintf( '<option value="%1$s" %3$s>%2$s</option>', $number, $title, $selected );
+						}
+						?>
+                    </select>
+                </p>
+                <p>
+                    <label for="<?php echo $this->get_field_id( 'widescreen' ); ?>">
+						<?php esc_html_e( 'Photos per column on widescreen', 'simple-flickr-widget' ); ?>
+                    </label>
+                    <select
+                            class="widefat"
+                            id="<?php echo $this->get_field_id( 'widescreen' ); ?>"
+                            name="<?php echo $this->get_field_name( 'widescreen' ); ?>"
+                    >
+						<?php
+						foreach ( $this->_columns() as $number => $title ) {
+							$selected = $instance['widescreen'] == $number ? 'selected' : '';
+							echo sprintf( '<option value="%1$s" %3$s>%2$s</option>', $number, $title, $selected );
+						}
+						?>
+                    </select>
+                </p>
+                <p>
+                    <label for="<?php echo $this->get_field_id( 'fullhd' ); ?>">
+						<?php esc_html_e( 'Photos per column on fullhd', 'simple-flickr-widget' ); ?>
+                    </label>
+                    <select
+                            class="widefat"
+                            id="<?php echo $this->get_field_id( 'fullhd' ); ?>"
+                            name="<?php echo $this->get_field_name( 'fullhd' ); ?>"
+                    >
+						<?php
+						foreach ( $this->_columns() as $number => $title ) {
+							$selected = $instance['fullhd'] == $number ? 'selected' : '';
+							echo sprintf( '<option value="%1$s" %3$s>%2$s</option>', $number, $title, $selected );
+						}
+						?>
+                    </select>
+                </p>
+            </div>
         </div>
 		<?php
+	}
+
+	/**
+	 * Get flickr photo sizes
+	 *
+	 * @param bool $key_only
+	 *
+	 * @return array
+	 */
+	private function _photo_sizes( $key_only = false ) {
+		$image_sizes = array(
+			's' => __( 'Small square 75x75', 'simple-flickr-widget' ),
+			'q' => __( 'Large square 150x150', 'simple-flickr-widget' ),
+			't' => __( 'Thumbnail, 100 on longest side', 'simple-flickr-widget' ),
+			'm' => __( 'Small, 240 on longest side', 'simple-flickr-widget' ),
+			'n' => __( 'Small, 320 on longest side', 'simple-flickr-widget' ),
+			'-' => __( 'Medium, 500 on longest side', 'simple-flickr-widget' ),
+			'z' => __( 'Medium 640, 640 on longest side', 'simple-flickr-widget' ),
+			'c' => __( 'Medium 800, 800 on longest side', 'simple-flickr-widget' ),
+			'b' => __( 'Large, 1024 on longest side', 'simple-flickr-widget' ),
+			'h' => __( 'Large 1600, 1600 on longest side', 'simple-flickr-widget' ),
+			'k' => __( 'Large 2048, 2048 on longest side', 'simple-flickr-widget' ),
+		);
+
+		if ( $key_only ) {
+			return array_keys( $image_sizes );
+		}
+
+		return $image_sizes;
+	}
+
+	private function _columns( $key_only = false ) {
+		$columns = array(
+			'1' => esc_html__( 'One Photo', 'simple-flickr-widget' ),
+			'2' => esc_html__( 'Two Photos', 'simple-flickr-widget' ),
+			'3' => esc_html__( 'Three Photos', 'simple-flickr-widget' ),
+			'4' => esc_html__( 'Four Photos', 'simple-flickr-widget' ),
+			'6' => esc_html__( 'Six Photos', 'simple-flickr-widget' ),
+		);
+
+		if ( $key_only ) {
+			return array_keys( $columns );
+		}
+
+		return $columns;
+	}
+
+	/**
+	 * Convert column to grid
+	 *
+	 * @param int $number
+	 *
+	 * @return int
+	 */
+	private function _column_to_grid( $number = 3 ) {
+		$number = intval( $number );
+
+		if ( $number === 1 ) {
+			return 12;
+		}
+		if ( $number === 2 ) {
+			return 6;
+		}
+		if ( $number === 3 ) {
+			return 4;
+		}
+		if ( $number === 4 ) {
+			return 3;
+		}
+		if ( $number === 6 ) {
+			return 2;
+		}
+
+		return 3;
 	}
 }
 

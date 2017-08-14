@@ -33,11 +33,10 @@ if ( ! class_exists( 'Flickr_Photos_Gallery_Shortcode' ) ):
 		 * A shortcode for rendering the client testimonials slide.
 		 *
 		 * @param  array $atts Shortcode attributes.
-		 * @param  string $content The text content for shortcode. Not used.
 		 *
 		 * @return string  The shortcode output
 		 */
-		public function flickr_gallery( $atts, $content = null ) {
+		public function flickr_gallery( $atts ) {
 			$defaults = array(
 				'api_key'          => '',
 				'user_id'          => '',

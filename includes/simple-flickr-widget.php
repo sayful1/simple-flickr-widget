@@ -34,33 +34,22 @@ class Simple_Flickr_Widget extends WP_Widget {
 		$content = wp_cache_get( $this->widget_id );
 
 		if ( false === $content ) {
-
-			$title      = isset( $instance['title'] ) ? esc_attr( $instance['title'] ) : null;
-			$flickr_id  = isset( $instance['flickr_id'] ) ? esc_attr( $instance['flickr_id'] ) : null;
-			$number     = isset( $instance['number'] ) ? absint( $instance['number'] ) : 20;
-			$row_number = isset( $instance['row_number'] ) ? absint( $instance['row_number'] ) : 3;
-
-			$api_key        = isset( $instance['api_key'] ) ? esc_attr( $instance['api_key'] ) : '';
-			$gutters        = isset( $instance['gutters'] ) ? esc_attr( $instance['gutters'] ) : '5px';
-			$mobile         = isset( $instance['mobile'] ) ? absint( $instance['mobile'] ) : 1;
-			$tablet         = isset( $instance['tablet'] ) ? absint( $instance['tablet'] ) : 2;
-			$desktop        = isset( $instance['desktop'] ) ? absint( $instance['desktop'] ) : 3;
-			$widescreen     = isset( $instance['widescreen'] ) ? absint( $instance['widescreen'] ) : 4;
-			$fullhd         = isset( $instance['fullhd'] ) ? absint( $instance['fullhd'] ) : 6;
-			$is_responsive  = isset( $instance['is_responsive'] ) ? esc_attr( $instance['is_responsive'] ) : 'no';
-			$g_img_size     = isset( $instance['gallery_img_size'] ) ? esc_attr( $instance['gallery_img_size'] ) : 'q';
-			$modal_img_size = isset( $instance['modal_img_size'] ) ? esc_attr( $instance['modal_img_size'] ) : 'b';
-
 			$instance = array(
 				'title'            => isset( $instance['title'] ) ? esc_attr( $instance['title'] ) : '',
-				'flickr_id'        => isset( $instance['flickr_id'] ) ? esc_attr( $instance['flickr_id'] ) : '',
-				'api_key'          => isset( $instance['api_key'] ) ? esc_attr( $instance['api_key'] ) : '',
-				'columns'          => isset( $instance['row_number'] ) ? absint( $instance['row_number'] ) : 3,
 				'total_images'     => isset( $instance['number'] ) ? absint( $instance['number'] ) : 20,
+				'columns'          => isset( $instance['row_number'] ) ? absint( $instance['row_number'] ) : 3,
+				'flickr_id'        => isset( $instance['flickr_id'] ) ? esc_attr( $instance['flickr_id'] ) : '',
+				// New attributes
+				'api_key'          => isset( $instance['api_key'] ) ? esc_attr( $instance['api_key'] ) : '',
 				'gutters'          => isset( $instance['gutters'] ) ? esc_attr( $instance['gutters'] ) : '5px',
 				'gallery_img_size' => isset( $instance['gallery_img_size'] ) ? esc_attr( $instance['gallery_img_size'] ) : 'q',
 				'modal_img_size'   => isset( $instance['modal_img_size'] ) ? esc_attr( $instance['modal_img_size'] ) : 'b',
 				'is_responsive'    => isset( $instance['is_responsive'] ) ? esc_attr( $instance['is_responsive'] ) : 'no',
+				'mobile'           => isset( $instance['mobile'] ) ? absint( $instance['mobile'] ) : 1,
+				'tablet'           => isset( $instance['tablet'] ) ? absint( $instance['tablet'] ) : 2,
+				'desktop'          => isset( $instance['desktop'] ) ? absint( $instance['desktop'] ) : 3,
+				'widescreen'       => isset( $instance['widescreen'] ) ? absint( $instance['widescreen'] ) : 4,
+				'fullhd'           => isset( $instance['fullhd'] ) ? absint( $instance['fullhd'] ) : 6,
 			);
 
 			ob_start();
@@ -70,7 +59,7 @@ class Simple_Flickr_Widget extends WP_Widget {
 				echo $args['before_title'] . $instance['title'] . $args['after_title'];
 			}
 
-			if ( empty( $api_key ) ) {
+			if ( empty( $instance['api_key'] ) ) {
 				if ( current_user_can( 'manage_options' ) ) {
 					printf(
 						'<div style="background-color: #ffdddd;border-left: 0.375rem solid #f44336; margin-bottom: 1rem;
@@ -79,8 +68,8 @@ class Simple_Flickr_Widget extends WP_Widget {
 						esc_html__( 'From version 2.0.0, Simple Flickr Widget requires Flickr API key. Update your widget settings with api key.', 'simple-flickr-widget' )
 					);
 				}
-				if ( $gutters ) {
-					$gutter = $this->get_item_gutter( $gutters );
+				if ( $instance['gutters'] ) {
+					$gutter = $this->get_item_gutter( $instance['gutters'] );
 					echo '<style>';
 					echo '#' . $args['widget_id'] . ' .columns{margin: -' . $gutter . '}';
 					echo '#' . $args['widget_id'] . ' .column{padding: ' . $gutter . '}';
@@ -122,9 +111,19 @@ class Simple_Flickr_Widget extends WP_Widget {
 
 	private function feed_html( $atts ) {
 
-		$photos     = $this->flickr_public_feed( $atts['flickr_id'], $atts['total_images'] );
-		$list_class = 'flickr_photos_gallery columns is-multiline is-mobile';
-		$item_class = sprintf( 'column is-%s', $atts['columns'] );
+		$photos = $this->flickr_public_feed( $atts['flickr_id'], $atts['total_images'] );
+
+		if ( $atts['is_responsive'] == 'no' ) {
+			$list_class = 'flickr_photos_gallery columns is-multiline is-mobile';
+			$item_class = sprintf( 'column is-%s', $atts['columns'] );
+		} else {
+			$list_class = 'flickr_photos_gallery columns is-multiline';
+			$item_class = 'column';
+			$item_class .= ' is-' . $this->_column_to_grid( $atts['mobile'] ) . '-mobile';
+			$item_class .= ' is-' . $this->_column_to_grid( $atts['tablet'] ) . '-tablet';
+			$item_class .= ' is-' . $this->_column_to_grid( $atts['desktop'] ) . '-desktop';
+			$item_class .= ' is-' . $this->_column_to_grid( $atts['widescreen'] ) . '-widescreen';
+		}
 
 		$img_size = $atts['gallery_img_size'];
 		if ( $img_size == '-' ) {
@@ -179,6 +178,14 @@ class Simple_Flickr_Widget extends WP_Widget {
 		return $html;
 	}
 
+	/**
+	 * Get flickr public feed by user id
+	 *
+	 * @param $user_id
+	 * @param int $per_page
+	 *
+	 * @return array|bool
+	 */
 	private function flickr_public_feed( $user_id, $per_page = 20 ) {
 		include_once( ABSPATH . WPINC . '/feed.php' );
 
@@ -224,6 +231,13 @@ class Simple_Flickr_Widget extends WP_Widget {
 		return $data;
 	}
 
+	/**
+	 * Get image width and height from image URL
+	 *
+	 * @param $img_loc
+	 *
+	 * @return bool|array
+	 */
 	private function getjpegsize( $img_loc ) {
 		$handle = fopen( $img_loc, "rb" ) or die( "Invalid file stream." );
 		$new_block = null;
@@ -299,10 +313,18 @@ class Simple_Flickr_Widget extends WP_Widget {
 	public function update( $new_instance, $old_instance ) {
 		$old_instance['title']            = sanitize_text_field( $new_instance['title'] );
 		$old_instance['flickr_id']        = sanitize_text_field( $new_instance['flickr_id'] );
-		$old_instance['number']           = absint( $new_instance['number'] );
-		$old_instance['row_number']       = absint( $new_instance['row_number'] );
 		$old_instance['gallery_img_size'] = sanitize_text_field( $new_instance['gallery_img_size'] );
 		$old_instance['modal_img_size']   = sanitize_text_field( $new_instance['modal_img_size'] );
+		$old_instance['is_responsive']    = sanitize_text_field( $new_instance['is_responsive'] );
+		$old_instance['gutters']          = sanitize_text_field( $new_instance['gutters'] );
+		$old_instance['api_key']          = sanitize_text_field( $new_instance['api_key'] );
+		$old_instance['number']           = absint( $new_instance['number'] );
+		$old_instance['row_number']       = absint( $new_instance['row_number'] );
+		$old_instance['mobile']           = absint( $new_instance['mobile'] );
+		$old_instance['tablet']           = absint( $new_instance['tablet'] );
+		$old_instance['desktop']          = absint( $new_instance['desktop'] );
+		$old_instance['widescreen']       = absint( $new_instance['widescreen'] );
+		$old_instance['fullhd']           = absint( $new_instance['fullhd'] );
 
 		$this->flush_widget_cache();
 
@@ -336,6 +358,7 @@ class Simple_Flickr_Widget extends WP_Widget {
 			'desktop'          => 3,
 			'widescreen'       => 4,
 			'fullhd'           => 6,
+			'gutters'          => '5px',
 			'is_responsive'    => 'no',
 			'gallery_img_size' => 'q',
 			'modal_img_size'   => 'o',
@@ -395,6 +418,20 @@ class Simple_Flickr_Widget extends WP_Widget {
 			    </span>
             </p>
             <p>
+                <label for="<?php echo $this->get_field_id( 'gutters' ); ?>">
+					<?php esc_html_e( 'Gutter:', 'simple-flickr-widget' ); ?>
+                </label>
+                <input
+                        type="text"
+                        class="widefat"
+                        id="<?php echo $this->get_field_id( 'gutters' ); ?>"
+                        name="<?php echo $this->get_field_name( 'gutters' ); ?>"
+                        value="<?php echo $instance['gutters']; ?>">
+                <span>
+				    <?php esc_html_e( 'Distance from one image to another. Accepts px, em and rem value.', 'simple-flickr-widget' ); ?>
+			    </span>
+            </p>
+            <p>
                 <label for="<?php echo $this->get_field_id( 'gallery_img_size' ); ?>">
 					<?php esc_html_e( 'Gallery Image Size:', 'simple-flickr-widget' ); ?>
                 </label>
@@ -435,13 +472,15 @@ class Simple_Flickr_Widget extends WP_Widget {
                             type="checkbox"
                             class="is_responsive_checked"
                             id="<?php echo $this->get_field_id( 'is_responsive' ); ?>"
-                            name="<?php echo $this->get_field_name( 'is_responsive' ); ?>
-                            <?php echo $instance['is_responsive'] == 'yes' ? 'checked' : ''; ?>
-                            value=" yes">
+                            name="<?php echo $this->get_field_name( 'is_responsive' ); ?>"
+                            value="yes"
+						<?php echo $instance['is_responsive'] == 'yes' ? 'checked' : ''; ?>
+                    >
 					<?php esc_html_e( 'Use responsive gallery:', 'simple-flickr-widget' ); ?>
                 </label>
             </p>
-            <div class="no_responsive_column">
+            <div class="no_responsive_column"
+                 style="display: <?php echo ( $instance['is_responsive'] == 'no' ) ? 'block' : 'none'; ?>">
                 <p>
                     <label for="<?php echo $this->get_field_id( 'row_number' ); ?>">
 						<?php esc_html_e( 'Photos per column:', 'simple-flickr-widget' ); ?>
@@ -460,7 +499,8 @@ class Simple_Flickr_Widget extends WP_Widget {
                     </select>
                 </p>
             </div>
-            <div class="responsive_columns">
+            <div class="responsive_columns"
+                 style="display: <?php echo ( $instance['is_responsive'] == 'yes' ) ? 'block' : 'none'; ?>">
                 <p>
                     <label for="<?php echo $this->get_field_id( 'mobile' ); ?>">
 						<?php esc_html_e( 'Photos per column on mobile', 'simple-flickr-widget' ); ?>
@@ -580,6 +620,13 @@ class Simple_Flickr_Widget extends WP_Widget {
 		return $image_sizes;
 	}
 
+	/**
+	 * Get available columns
+	 *
+	 * @param bool $key_only
+	 *
+	 * @return array
+	 */
 	private function _columns( $key_only = false ) {
 		$columns = array(
 			'1' => esc_html__( 'One Photo', 'simple-flickr-widget' ),
